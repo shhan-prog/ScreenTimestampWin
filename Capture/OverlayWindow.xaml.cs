@@ -11,7 +11,6 @@ namespace ScreenTimestampWin.Capture
     {
         private Point _startPoint;
         private bool _isDragging;
-        private Rectangle? _selectionRect;
         private readonly RectangleGeometry _selectionGeometry = new();
 
         public Rect SelectedRect { get; private set; }

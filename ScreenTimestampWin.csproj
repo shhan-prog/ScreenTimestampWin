@@ -5,7 +5,7 @@
     <TargetFramework>net8.0-windows</TargetFramework>
     <UseWPF>true</UseWPF>
     <UseWindowsForms>true</UseWindowsForms>
-    <ApplicationIcon>app.ico</ApplicationIcon>
+    <Nullable>enable</Nullable>
     <AssemblyName>ScreenTimestamp</AssemblyName>
     <RootNamespace>ScreenTimestampWin</RootNamespace>
     <ApplicationManifest>app.manifest</ApplicationManifest>
