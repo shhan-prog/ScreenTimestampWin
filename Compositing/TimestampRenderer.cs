@@ -14,7 +14,7 @@ namespace ScreenTimestampWin.Compositing
         public static Bitmap Render()
         {
             var bitmap = new Bitmap(RenderWidth, RenderHeight);
-            bitmap.SetResolution(300, 300);
+            bitmap.SetResolution(96, 96);
 
             using var g = Graphics.FromImage(bitmap);
             g.SmoothingMode = SmoothingMode.HighQuality;
@@ -28,7 +28,7 @@ namespace ScreenTimestampWin.Compositing
             var timeStr = DateFormatterKorean.TimeString(now);
             var dateStr = DateFormatterKorean.DateString(now);
 
-            using var font = new Font("Segoe UI", 48f, FontStyle.Regular, GraphicsUnit.Point);
+            using var font = new Font("Segoe UI", 48f, FontStyle.Regular, GraphicsUnit.Pixel);
             using var textBrush = new SolidBrush(Color.White);
 
             var timeSize = g.MeasureString(timeStr, font);
