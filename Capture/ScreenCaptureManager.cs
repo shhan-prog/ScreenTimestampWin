@@ -1,8 +1,6 @@
 using System;
 using System.Drawing;
-using System.Runtime.InteropServices;
 using System.Threading.Tasks;
-using System.Windows;
 using System.Windows.Forms;
 using ScreenTimestampWin.Compositing;
 using ScreenTimestampWin.Output;
@@ -14,20 +12,6 @@ namespace ScreenTimestampWin.Capture
     {
         private static bool _isCapturing;
 
-        [DllImport("user32.dll")]
-        private static extern IntPtr GetDC(IntPtr hWnd);
-
-        [DllImport("gdi32.dll")]
-        private static extern int GetDeviceCaps(IntPtr hdc, int index);
-
-        [DllImport("user32.dll")]
-        private static extern int ReleaseDC(IntPtr hWnd, IntPtr hdc);
-
-        private const int DESKTOPHORZRES = 118;
-        private const int DESKTOPVERTRES = 117;
-        private const int HORZRES = 8;
-        private const int VERTRES = 10;
-
         public static void BeginCapture()
         {
             if (_isCapturing) return;
@@ -35,14 +19,9 @@ namespace ScreenTimestampWin.Capture
 
             Application.Current.Dispatcher.Invoke(() =>
             {
-                // 가상 스크린 전체를 덮는 오버레이
-                var overlay = new OverlayWindow
-                {
-                    Left = SystemInformation.VirtualScreen.Left,
-                    Top = SystemInformation.VirtualScreen.Top,
-                    Width = SystemInformation.VirtualScreen.Width,
-                    Height = SystemInformation.VirtualScreen.Height
-                };
+                // 윈도우 위치/크기는 OverlayWindow.OnSourceInitialized에서
+                // 물리 픽셀 단위로 가상 스크린 전체에 정확히 맞춰짐
+                var overlay = new OverlayWindow();
 
                 overlay.Closed += async (_, _) =>
                 {
@@ -53,19 +32,15 @@ namespace ScreenTimestampWin.Capture
                     }
 
                     var selectedRect = overlay.SelectedRect;
+                    var dpi = overlay.Dpi;
+                    var vs = SystemInformation.VirtualScreen;
 
-                    // 오버레이 좌표 → 스크린 절대 좌표
-                    var screenX = (int)(SystemInformation.VirtualScreen.Left + selectedRect.X);
-                    var screenY = (int)(SystemInformation.VirtualScreen.Top + selectedRect.Y);
-                    var width = (int)selectedRect.Width;
-                    var height = (int)selectedRect.Height;
-
-                    // DPI 스케일 보정
-                    var dpiScale = GetDpiScale();
-                    screenX = (int)(screenX * dpiScale);
-                    screenY = (int)(screenY * dpiScale);
-                    width = (int)(width * dpiScale);
-                    height = (int)(height * dpiScale);
+                    // selectedRect는 WPF 윈도우 내 DIP → 물리 픽셀로 변환
+                    // 윈도우 좌상단(DIP 0,0)이 가상 스크린의 (vs.Left, vs.Top) 물리 픽셀에 위치
+                    var screenX = vs.Left + (int)(selectedRect.X * dpi.DpiScaleX);
+                    var screenY = vs.Top + (int)(selectedRect.Y * dpi.DpiScaleY);
+                    var width = (int)(selectedRect.Width * dpi.DpiScaleX);
+                    var height = (int)(selectedRect.Height * dpi.DpiScaleY);
 
                     // 오버레이가 사라진 후 캡처 (200ms 대기)
                     await Task.Delay(200);
@@ -77,15 +52,6 @@ namespace ScreenTimestampWin.Capture
                 overlay.Activate();
                 overlay.Focus();
             });
-        }
-
-        private static double GetDpiScale()
-        {
-            var hdc = GetDC(IntPtr.Zero);
-            var physicalW = GetDeviceCaps(hdc, DESKTOPHORZRES);
-            var logicalW = GetDeviceCaps(hdc, HORZRES);
-            ReleaseDC(IntPtr.Zero, hdc);
-            return (double)physicalW / logicalW;
         }
 
         private static void CaptureRegion(int x, int y, int width, int height)

@@ -1,7 +1,9 @@
 using System;
+using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Shapes;
 
@@ -15,12 +17,35 @@ namespace ScreenTimestampWin.Capture
 
         public Rect SelectedRect { get; private set; }
         public bool Cancelled { get; private set; } = true;
+        public DpiScale Dpi { get; private set; }
 
         public OverlayWindow()
         {
             InitializeComponent();
             Cursor = Cursors.Cross;
+            WindowStartupLocation = WindowStartupLocation.Manual;
         }
+
+        protected override void OnSourceInitialized(EventArgs e)
+        {
+            base.OnSourceInitialized(e);
+
+            // WPF가 알려주는 실제 DPI 저장 (캡처 좌표 변환에 사용)
+            Dpi = VisualTreeHelper.GetDpi(this);
+
+            // 가상 스크린 전체를 물리 픽셀 단위로 정확히 덮도록 Win32 SetWindowPos 사용
+            // (WPF의 Width/Height는 DIP라 PerMonitorV2 환경에서 어긋남)
+            var vs = System.Windows.Forms.SystemInformation.VirtualScreen;
+            var hwnd = new WindowInteropHelper(this).Handle;
+            SetWindowPos(hwnd, IntPtr.Zero, vs.Left, vs.Top, vs.Width, vs.Height,
+                         SWP_NOZORDER | SWP_NOACTIVATE);
+        }
+
+        [DllImport("user32.dll")]
+        private static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter,
+            int X, int Y, int cx, int cy, uint uFlags);
+        private const uint SWP_NOZORDER = 0x0004;
+        private const uint SWP_NOACTIVATE = 0x0010;
 
         protected override void OnMouseLeftButtonDown(MouseButtonEventArgs e)
         {
